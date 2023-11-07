@@ -1,0 +1,142 @@
+<html lang="pt">
+<head>
+	<link rel="stylesheet" href="https://pyscript.net/alpha/pyscript.css" />
+	<script defer src="https://pyscript.net/alpha/pyscript.js"></script>
+	
+	<link rel="stylesheet" type="text/css" href="CSS/css.css">
+	
+	<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+	
+	
+	<py-env>
+		- datetime
+		- random
+		- async
+		- pyodide
+		- js
+		- paths:
+			- Sorteio ESEBA.py
+	</py-env>
+	
+</head>
+<body>
+	
+	<!-- Um cabeçalho simples para colocar as informações que achar necessárias -->
+	
+	<div class="container-fluid header">
+		<div class="col-lg-2">
+			<img class="logoeseba img-fluid" src="Images/eseba.png">
+		</div>
+		<div class="col-lg-6">
+			<h1 class="cabecalho">Escola de Educação Básica</h1>
+			<p class="cabecalho">Universidade Federal de Uberlândia</p>
+		</div>
+		<div class="vr col-lg-1"></div>
+		<div class="col-lg-2">
+			<p class="numero">2024</p>
+		</div>
+
+		<div class="col-lg-2">
+			<img class="logoufu img-fluid" src="Images/ufu preto.png">
+		</div>
+    </div>
+	
+	
+	<!-- Um div para receber as informações do usuário. Todas as entradas estão aqui neste div, todo o restante da página contém apenas saídas. -->
+	
+	<div class="receptor">
+	
+		<!-- O usuário deve selecionar se quer usar uma semente aleatória (como a própria ESEBA, por exemplo, quando quer fazer um sorteio)
+			ou utilizar uma semente fixa (para verificar se o sorteio aconteceu corretamente) -->
+		<label for="tiposemente">Você deseja sortear com uma semente pré-estabelecida ou com uma semente aleatória?</label><br>
+		<select id="tiposemente"  onchange="selecionar()">
+			<option disabled selected value> Selecione opção </option>
+			<option value="aleatorio"> Aleatória </option>
+			<option value="pre"> Pré-estabelecida </option>
+		</select>
+		
+		<br><br>
+		
+		<!-- Essa opção fica visível somente quando o usuário seleciona a semente pré-estabelecida.
+			Isso é feito através da função Javascript selecionar()-->
+		<div id = "div_semente" hidden>
+			<label for="semente">Insira a semente desejada</label><br>
+			<input type="text" id="semente" onchange="selecionar_semente()">
+			<br><br>
+		</div>
+		
+		<!-- Essa opção fica visível somente quando o usuário seleciona a semente aleatória OU após a semente pré-estabelecida não ser nula.
+			Isso é feito através das funções Javascript selecionar() e selecionar_semente(), respectivamente-->
+		<div id = "div_arquivo" hidden>
+			<label for="inscritos">Selecione o arquivo com os candidatos:</label><br>
+			<input type="file" id="inscritos" name="inscritos"><br><br>
+		</div>
+	</div>
+	
+	
+	<!-- Essa parte da página será montada pelo código em Python a partir do arquivo enviado -->
+			
+	<div id="print_output">
+    <br />
+    <p>File Content:</p>
+    <div style="border:2px inset #AAA;cursor:text;height:120px;overflow:auto;width:600px; resize:both">
+      <div id="content">
+      </div>
+    </div>
+	</div>
+
+	<py-script output="print_output"> 
+		import asyncio
+		from js import document, FileReader
+		from pyodide import create_proxy
+
+		async def process_file(event):
+			fileList = event.target.files.to_py()
+
+			for f in fileList:
+				data = await f.text()
+				dados = data.split("\n")
+				document.getElementById("content").innerHTML = dados[0]
+
+		def main():
+			file_event = create_proxy(process_file)
+
+			e = document.getElementById("inscritos")
+			e.addEventListener("change", file_event, False)
+			
+		main()
+	</py-script>
+	
+	<script>
+		function selecionar() {
+		  var x = document.getElementById("tiposemente").value;
+		  if (x == "pre")
+		  {
+			document.getElementById("div_semente").hidden=false
+			document.getElementById("div_arquivo").hidden=true
+		  }
+		  else
+		  {
+			document.getElementById("div_semente").hidden=true 
+			document.getElementById("div_arquivo").hidden=false
+		  }
+		}
+		
+		function selecionar_semente() {
+		  var x = document.getElementById("semente").value;
+		  if (x.length == 0)
+		  {
+			document.getElementById("div_arquivo").hidden=true 
+		  }
+		  else
+		  {
+			document.getElementById("div_arquivo").hidden=false
+		  }
+		}
+	</script>
+	
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+</body>
+</html>

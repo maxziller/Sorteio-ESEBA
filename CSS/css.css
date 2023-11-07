@@ -1,0 +1,53 @@
+.header {
+		width: 100%;
+        background-color: #0073e6;
+        color: #fff;
+        padding: 20px;
+        text-align: center;
+		display: flex;
+        justify-content: space-between;
+		position: relative;
+}
+		
+body{
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        background-color: #f0f0f0;
+}
+
+.receptor{
+		background-color: #D5E3F5;
+		text-align: center;
+		padding: 25px;
+}	
+
+@font-face {
+	font-family: Schoolbell;
+	src: local('CSS/Schoolbell-Regular.ttf');
+}
+
+.numero {
+	font-family: Schoolbell;
+	font-size: 36px;
+}
+
+.logoufu {
+            width: 60%; /* Defina a largura desejada para a logo */
+			padding: 3px;
+        }
+		
+.logoeseba {
+            width: 60%; /* Defina a largura desejada para a logo */
+			padding: 13px 0;
+        }
+		
+h1.cabecalho {
+    font-size: 36px;
+	padding: 10px 0;
+}
+
+p.cabecalho {
+    font-size: 18px;
+	padding: 5px 0;
+}
