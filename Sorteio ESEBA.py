@@ -1,6 +1,7 @@
 from datetime import datetime, date
 import random
-from tkinter as Tk import tk
+from tkinter import filedialog
+import tkinter as tk 
 
 #Classe que recebe os dados de um candidato único
 class Candidato:
@@ -49,11 +50,21 @@ class Vaga:
     def Recebe_vagas(self,quantidade):
         self.quantidade += quantidade
 
-    def Realiza_sorteio(self,semente):
+    def Sobra_vagas(self):
         qtdd_candidatos = len(self.lista_candidatos)
-        if ( qtdd_candidatos < self.quantidade ):
+        sobra = self.quantidade - qtdd_candidatos
+        if (sobra < 0):
+            return 0
+        else:
+            return sobra
+
+    def Retira_candidato(self,candidato):
+        self.lista_candidatos.remove(candidato)
+
+    def Realiza_sorteio(self,semente):
+        if ( len(self.lista_candidatos) < self.quantidade ):
             random.seed(semente)
-            self.selecionados = random.sample(self.lista_candidatos,qtdd_candidatos)
+            self.selecionados = random.sample(self.lista_candidatos,len(self.lista_candidatos))
         else:
             for i in range(self.quantidade):
                 random.seed(semente)
@@ -89,13 +100,24 @@ class Sorteio:
         #Inicia o procedimento para escolha do arquivo fonte das inscrições
         root = tk.Tk()
         root.withdraw()
+
+        # Make it almost invisible - no decorations, 0 size, top left corner.
+        root.overrideredirect(True)
+        root.geometry('0x0+0+0')
+
+        # Show window again and lift it to top so it can get focus,
+        # otherwise dialogs will end up behind the terminal.
+        root.deiconify()
+        root.lift()
+        root.focus_force()
+        
         file_path = filedialog.askopenfilename()
 
         self.semente = int(semente)
 
         #Chama a leitura do documento e monta os objetos do sorteio dentro de
         self.Ler_documento(file_path)
-               
+        root.destroy()
 
         return
 
@@ -162,10 +184,7 @@ class Sorteio:
         else:
             print("\nERRO: Formatação da quantidade de vagas não identificada.\n")
             return False
-
-
-    #def Realiza_sorteio(self):
-        
+    
 
     def Imprime_candidatos(self):
         for vaga in self.vagas:
@@ -177,38 +196,84 @@ class Sorteio:
 
         print("SEMENTE: "+str(self.semente))
         lista = self.anos_com_cota
-        lista.insert(0,"1º período")
+
+        '''
+        Primeiro período e separado pois deve ter todas as heranças das cotas
+        '''
+
+        ano = "1º período"
+        arvore_cotas = Arvore()
+        arvore_cotas.Arvore_cotas("comcotas")
+        ordem = arvore_cotas.Lista_folha_para_raiz()
+        ampla = ordem[-1]
+        ordem = ordem[:-1]
+
+        '''Primeiro deve ser feito o sorteio da Ampla Concorrência com todos no sorteio'''
+        vaga_ampla = self.vagas[ano,ampla]
+        for cota in ordem:
+            vaga = self.vagas[ano,cota]
+            for cand in vaga.lista_candidatos:
+                vaga_ampla.Adiciona_candidato(cand)
+        vaga_ampla.Realiza_sorteio(self.semente)
+        for aluno in vaga_ampla.selecionados:
+            for cota in ordem:
+                if aluno in self.vagas[ano,cota].lista_candidatos:
+                    self.vagas[ano,cota].Retira_candidato(aluno)
+                    break
+        
+
+        '''Depois, o sorteio das outras cotas'''
+        for cota in ordem:
+            vaga = self.vagas[ano,cota]
+            vaga.Realiza_sorteio(self.semente)
+
+            for cota in ordem:
+                vaga = self.vagas[ano,cota]
+
+                sobra = vaga.Sobra_vagas()
+                pai = arvore_cotas.Localiza_pai(cota)
+                self.vagas[ano,pai].Recebe_vagas(sobra)
+                
+                vaga.Realiza_sorteio(self.semente)
+                
+        ordem.sort()
+        for cota in ordem:
+            vaga.Imprime_selecionados()
+        vaga_ampla.Imprime_selecionados()
+
+        '''
+        Agora é feito o sorteio do segundo período até o próximo ano que tenha as cotas
+        '''
+        ordem = arvore_cotas.Lista_folha_para_raiz()
+        ordem.sort()
         for ano in lista:
             arvore_cotas = Arvore()
             arvore_cotas.Arvore_cotas("comcotas")
             ordem = arvore_cotas.Lista_folha_para_raiz()
+            ordem.sort()
+
             for cota in ordem:
                 vaga = self.vagas[ano,cota]
                 vaga.Realiza_sorteio(self.semente)
-                x = vaga.quantidade - len(vaga.selecionados)
-                heranca = arvore_cotas.Localiza_pai(cota)
-                if (heranca):
-                    self.vagas[ano,heranca].quantidade += x
-            ordem.sort()
-            for cota in ordem:
+                vaga.Imprime_selecionados()
                 
-                self.vagas[ano,cota].Imprime_selecionados()
 
-        for ano in self.anos_sem_cota:
+        '''
+        Agora é feito o sorteio do segundo período até o próximo ano que NÃO tenha as cotas
+        '''
+
+        lista = self.anos_sem_cota
+        
+        for ano in lista:
             arvore_cotas = Arvore()
             arvore_cotas.Arvore_cotas("semcotas")
             ordem = arvore_cotas.Lista_folha_para_raiz()
+            ordem.sort()
+
             for cota in ordem:
                 vaga = self.vagas[ano,cota]
                 vaga.Realiza_sorteio(self.semente)
-                x = vaga.quantidade - len(vaga.selecionados)
-                heranca = arvore_cotas.Localiza_pai(cota)
-                if (heranca):
-                    self.vagas[ano,heranca].quantidade += x
-            ordem.sort()
-            for cota in ordem:
-                
-                self.vagas[ano,cota].Imprime_selecionados()
+                vaga.Imprime_selecionados()
 
 
 '''
@@ -296,6 +361,8 @@ class Arvore:
     '''
     Montagem da árvore de acordo com a normativa
     Uma vaga não ocupada em uma cota (folha) será transferida para o Nó Pai
+    As cotas vêm numeradas para sua identificação. Caso haja alteração nas cotas, as turmas que ainda existem deverão continuar com o modelo de cotas de quando as turmas foram montadas
+    nos seus primeiros períodos. Um novo modo deve ser feito para as novas turmas com formato de cotas diferentes.
     '''
     def Arvore_cotas(self,modo):
         if (modo == "comcotas"):
