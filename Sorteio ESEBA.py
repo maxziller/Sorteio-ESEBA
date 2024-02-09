@@ -3,6 +3,32 @@ import random
 from tkinter import filedialog
 import tkinter as tk 
 
+
+'''
+PROGRAMA DE SORTEIO PARA A ESEBA
+
+O programa deve receber um arquivo em formato CSV com separador sendo o caractere ";"
+A tabela do CSV deve conter, nesta ordem:
+- Numero identificador, o atributo chave. Um número único que identifique o candidato.
+- Nome do estudante
+- Número de irmãos gêmeos do estudante (0 em caso não tenha, o número de irmãos gêmeos caso tenha)
+- Data de mascimento do candidato no formato DD/MM/AAAA
+- Se o candidato é ou não PCD - se for, valor 1; se não for, valor 0
+- O ano letivo para o qual o candidato está se candidatando, no formato "2º período"; "1º ano"...
+- O número referente à cota para a qual o candidato se inscreveu
+- O número do CPF do responsável
+
+Todos os comandos PRINT podem ser ignorados, eles servem apenas para guiar e mostrar para a direção e a secretaria
+sobre como as coisas estão implementadas.
+
+Busquei utilizar Python para ficar mais fácil a leitura para outra pessoa que fosse mexer.
+
+Tentei utilizar PyScript para montar uma interface que fosse mais amigável para o pessoal da escola, mas não consegui
+fazer funcionar. Passo o bastão para você.
+
+Dúvidas e no que eu puder ajudar, pode me chamar. maxpziller@gmail.com
+'''
+
 #Classe que recebe os dados de um candidato único
 class Candidato:
     def __init__(self, id, nome, gemeo, nascimento, pcd, ano, cota, cpf_responsavel):
@@ -62,12 +88,11 @@ class Vaga:
         self.lista_candidatos.remove(candidato)
 
     def Realiza_sorteio(self,semente):
+        random.seed(semente)
         if ( len(self.lista_candidatos) < self.quantidade ):
-            random.seed(semente)
             self.selecionados = random.sample(self.lista_candidatos,len(self.lista_candidatos))
         else:
             for i in range(self.quantidade):
-                random.seed(semente)
                 sorteado = self.lista_candidatos.pop( random.randrange(len(self.lista_candidatos)) )
                 self.selecionados.append(sorteado)
 
@@ -210,6 +235,7 @@ class Sorteio:
 
         '''Primeiro deve ser feito o sorteio da Ampla Concorrência com todos no sorteio'''
         vaga_ampla = self.vagas[ano,ampla]
+        tamanho_ampla = len(vaga_ampla.lista_candidatos)
         for cota in ordem:
             vaga = self.vagas[ano,cota]
             for cand in vaga.lista_candidatos:
@@ -217,28 +243,28 @@ class Sorteio:
         vaga_ampla.Realiza_sorteio(self.semente)
         for aluno in vaga_ampla.selecionados:
             for cota in ordem:
-                if aluno in self.vagas[ano,cota].lista_candidatos:
+                if aluno in self.vagas[ano,cota].selecionados:
                     self.vagas[ano,cota].Retira_candidato(aluno)
+                    print("Candidato "+aluno.nome+" da cota "+str(cota)+" sorteado na ampla concorrência.")
                     break
         
 
         '''Depois, o sorteio das outras cotas'''
+
         for cota in ordem:
             vaga = self.vagas[ano,cota]
-            vaga.Realiza_sorteio(self.semente)
 
-            for cota in ordem:
-                vaga = self.vagas[ano,cota]
-
-                sobra = vaga.Sobra_vagas()
-                pai = arvore_cotas.Localiza_pai(cota)
-                self.vagas[ano,pai].Recebe_vagas(sobra)
+            sobra = vaga.Sobra_vagas()
+            pai = arvore_cotas.Localiza_pai(cota)
+            self.vagas[ano,pai].Recebe_vagas(sobra)
                 
-                vaga.Realiza_sorteio(self.semente)
+            vaga.Realiza_sorteio(self.semente)
                 
         ordem.sort()
         for cota in ordem:
+            vaga = self.vagas[ano,cota]
             vaga.Imprime_selecionados()
+        print("Originalmente há "+str(tamanho_ampla)+" candidatos na ampla concorrência.")
         vaga_ampla.Imprime_selecionados()
 
         '''
